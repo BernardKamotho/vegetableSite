@@ -27,18 +27,7 @@ const Getproducts = () => {
         }
     };
 
-    const addToCart = async (productId) => {
-        try {
-            await axios.post("https://taliban.pythonanywhere.com/api/cart/", {
-                product_id: productId,
-                quantity: 1
-            });
-            alert("Product added to cart!");
-        } catch (error) {
-            alert("Failed to add product to cart.");
-            console.error(error);
-        }
-    };
+
 
     useEffect(() => {
         getproducts();
@@ -48,6 +37,18 @@ const Getproducts = () => {
         product.vegetable_name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const addToCart = (product) => {
+        const existingCart = JSON.parse(localStorage.getItem("cart")) || [];
+        existingCart.push(product);
+        localStorage.setItem("cart", JSON.stringify(existingCart));
+    
+        // 🔔 Notify other components that cart was updated
+        window.dispatchEvent(new Event("cartUpdated"));
+    
+        alert(`Added "${product.vegetable_name}" to cart.`);
+      };
+
+     
     return (
         <div className="row">
             <ImageCarousel/>
@@ -68,6 +69,9 @@ const Getproducts = () => {
             )}
 
             {/* Search input */}
+           <div className="row">
+            <div className="col-md-3"></div>
+            <div className="col-md-6 mt-2">
             <input 
                 type="text" 
                 placeholder="Search for a product..." 
@@ -75,6 +79,9 @@ const Getproducts = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
             />
+            </div>
+            <div className="col-md-3"></div>
+           </div>
 
             {/* Products List */}
             {!loading && filteredProducts.map((product) => (
@@ -89,18 +96,12 @@ const Getproducts = () => {
                             <h5 className="mt-2">{product.vegetable_name}</h5>
                             <p className="text-muted">{product.vegetable_description.slice(0, 50)}</p>
                             <b className="text-warning">{product.vegetable_cost} KES</b> <br />
-                            <button 
-                                className="btn btn-primary me-2"
-                                onClick={() => addToCart(product.id)}
-                            >
-                                Add to Cart
-                            </button>
-                            <button 
-                                className="btn btn-success" 
-                                onClick={() => navigate("/makepayment", { state: { product } })}
-                            >
-                                Make payment
-                            </button>
+                            <button
+                    className="btn btn-outline-danger mt-2 w-100 fw-semibold"
+                    onClick={() => addToCart(product)}
+                  >
+                    <i className="bi bi-cart-plus me-2"></i>Add to Cart
+                  </button>
                         </div>
                     </div>
                 </div>

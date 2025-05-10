@@ -1,97 +1,90 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
-import Footer from "./Footer";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Cart = () => {
-    const [cartItems, setCartItems] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const img_url = "https://taliban.pythonanywhere.com/static/images/";
+  const [cartItems, setCartItems] = useState([]);
+  const [totalCost, setTotalCost] = useState(0);
+  const img_url = "https://taliban.pythonanywhere.com/static/images/";
+  const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchCartItems = async () => {
-            try {
-                const response = await axios.get(
-                    "https://taliban.pythonanywhere.com/api/cart/",
-                    { withCredentials: true } // ensure session or cookie auth if needed
-                );
-                setCartItems(response.data);
-            } catch (err) {
-                setError("Failed to load cart items.");
-                console.error("Cart fetch error:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
+  useEffect(() => {
+    const storedCart = JSON.parse(localStorage.getItem("cart")) || [];
+    setCartItems(storedCart);
+  }, []);
 
-        fetchCartItems();
-    }, []);
+  // Update total cost whenever cartItems change
+  useEffect(() => {
+    const total = cartItems.reduce((sum, item) => sum + Number(item.vegetable_cost), 0);
+    setTotalCost(total);
+  }, [cartItems]);
 
-    const totalCost = cartItems.reduce((sum, item) => {
-        const cost = item.product?.vegetable_cost || 0;
-        return sum + item.quantity * cost;
-    }, 0);
+  const clearCart = () => {
+    localStorage.removeItem("cart");
+    setCartItems([]);
+    window.dispatchEvent(new Event("cartUpdated")); // 🔄 Update Navbar
+  };
 
-    return (
-        <div className="container mt-5">
-            <h2 className="mb-4">Your Cart</h2>
+  const removeItem = (indexToRemove) => {
+    const updatedCart = cartItems.filter((_, index) => index !== indexToRemove);
+    localStorage.setItem("cart", JSON.stringify(updatedCart));
+    setCartItems(updatedCart);
+    window.dispatchEvent(new Event("cartUpdated")); // 🔄 Update Navbar
+  };
 
-            {loading && (
-                <div className="text-center my-4">
-                    <div className="spinner-border text-primary" role="status" aria-label="Loading">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
+  const proceedToCheckout = () => {
+    navigate("/makepayment", { state: { totalCost } });
+  };
+
+  return (
+    <div className="container mt-5">
+      <h3 className="text-center text-primary">Your Shopping Cart</h3>
+      {cartItems.length > 0 && (
+        <h5 className="text-center text-success">
+          Total: <span className="fw-bold">{totalCost} KES</span>
+        </h5>
+      )}
+
+      {cartItems.length === 0 ? (
+        <p className="text-center text-muted">Your cart is empty.</p>
+      ) : (
+        <>
+          <div className="text-center mb-4">
+            <button className="btn btn-danger me-3" onClick={clearCart}>
+              Clear Cart
+            </button>
+            <button className="btn btn-success" onClick={proceedToCheckout}>
+              Proceed to Checkout
+            </button>
+          </div>
+
+          <div className="row g-4">
+            {cartItems.map((item, index) => (
+              <div key={index} className="col-md-4">
+                <div className="card h-100 shadow-sm">
+                  <img
+                    src={img_url + item.vegetable_image}
+                    alt={item.product_name}
+                    className="card-img-top"
+                    style={{ height: "200px", objectFit: "cover" }}
+                  />
+                  <div className="card-body text-center">
+                    <h5 className="card-title">{item.vegetable_name}</h5>
+                    <p className="text-warning fw-bold">{item.vegetable_cost} KES</p>
+                    <button
+                      className="btn btn-outline-danger mt-2"
+                      onClick={() => removeItem(index)}
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
-            )}
-
-            {error && (
-                <div className="alert alert-danger" role="alert">
-                    {error}
-                </div>
-            )}
-
-            {!loading && cartItems.length === 0 && (
-                <div className="alert alert-info" role="alert">
-                    Your cart is empty.
-                </div>
-            )}
-
-            {!loading && cartItems.length > 0 && (
-                <>
-                    {cartItems.map((item) => {
-                        const { product } = item;
-                        return (
-                            <div key={item.id} className="card mb-3 shadow-sm">
-                                <div className="row g-0">
-                                    <div className="col-md-2">
-                                        <img
-                                            src={img_url + product.vegetable_image}
-                                            className="img-fluid rounded-start"
-                                            alt={product.vegetable_name}
-                                        />
-                                    </div>
-                                    <div className="col-md-10">
-                                        <div className="card-body">
-                                            <h5 className="card-title">{product.vegetable_name}</h5>
-                                            <p className="card-text">
-                                                KES {product.vegetable_cost} × {item.quantity}
-                                            </p>
-                                            <strong>Total: KES {product.vegetable_cost * item.quantity}</strong>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-
-                    <h4 className="mt-4">Grand Total: KES {totalCost}</h4>
-                    <button className="btn btn-success mt-2">Proceed to Checkout</button>
-                </>
-            )}
-
-            <Footer />
-        </div>
-    );
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
 };
 
 export default Cart;

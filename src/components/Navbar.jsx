@@ -1,24 +1,31 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
 const Navbar = () => {
   const [cartCount, setCartCount] = useState(0);
+  const location = useLocation();
 
-  // Fetch the cart items count from the API
-  const fetchCartCount = async () => {
-    try {
-      const response = await axios.get("https://taliban.pythonanywhere.com/api/cart/");
-      setCartCount(response.data.length); // Set count based on cart items length
-    } catch (error) {
-      console.error("Failed to fetch cart count", error);
-    }
-  };
 
-  // Call the fetchCartCount function whenever the Navbar loads
+
   useEffect(() => {
-    fetchCartCount();
-  }, []);
+    const updateCartCount = () => {
+      const cartItems = JSON.parse(localStorage.getItem("cart")) || [];
+      setCartCount(cartItems.length);
+    };
+
+    // Initial load
+    updateCartCount();
+
+    // Listen for custom "cartUpdated" event
+    window.addEventListener("cartUpdated", updateCartCount);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("cartUpdated", updateCartCount);
+    };
+  }, [location]);
+
 
   return (
     <nav className="navbar navbar-expand-md navbar-light bg-light shadow-sm mt-1">
@@ -50,16 +57,17 @@ const Navbar = () => {
 
         {/* View Cart Link with Badge */}
         <ul className="navbar-nav ms-auto">
-          <li className="nav-item">
-            <Link to="/cart" className="btn btn-outline-secondary position-relative">
-              🛒 View Cart
-              {cartCount > 0 && (
-                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                  {cartCount}
-                </span>
-              )}
-            </Link>
-          </li>
+        <li className="nav-item">
+              <b>
+                <Link to="/cart" className="nav-link d-flex align-items-center">
+                  <i className="fas fa-shopping-cart me-1"></i>
+                  Cart
+                  {cartCount > 0 && (
+                    <span className="badge bg-danger ms-2">{cartCount}</span>
+                  )}
+                </Link>
+              </b>
+            </li>
 
           {/* Authorization Links */}
           <li className="nav-item">

@@ -13,6 +13,8 @@ import Aboutus from './components/Aboutus';
 import ChatBot from './components/Chat';
 import Cart from './components/Cart';
 
+import "@fortawesome/fontawesome-free/css/all.min.css"
+
 function App() {
   return (
     <Router>
